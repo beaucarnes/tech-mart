@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - TechMart</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">🛒 TechMart</a>
+      <div class="nav-links">
+        <a href="/cart.html" class="cart-link">🛒 Cart (<span id="cartCount">0</span>)</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="auth-page">
+    <div class="auth-container">
+      <h1>Login to TechMart</h1>
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter your password" required>
+        </div>
+        <div id="errorMessage" class="error-message hidden"></div>
+        <button type="submit" class="btn btn-primary btn-full">Login</button>
+      </form>
+      <p class="auth-switch">
+        Don't have an account? <a href="/register.html">Sign up here</a>
+      </p>
+      <div class="demo-credentials">
+        <p><strong>Demo Account:</strong></p>
+        <p>Email: demo@techmart.com</p>
+        <p>Password: demo123</p>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('errorMessage');
+      
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('hidden');
+          return;
+        }
+        
+        localStorage.setItem('user', JSON.stringify(data.user));
+        showToast('Login successful! Redirecting...');
+        setTimeout(() => window.location.href = '/', 1500);
+      } catch (error) {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

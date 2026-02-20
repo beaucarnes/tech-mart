@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - TechMart</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">🛒 TechMart</a>
+      <div class="nav-links">
+        <a href="/cart.html" class="cart-link">🛒 Cart (<span id="cartCount">0</span>)</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="auth-page">
+    <div class="auth-container">
+      <h1>Create Your Account</h1>
+      <form id="registerForm" class="auth-form">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name" placeholder="John Doe" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Create a password" minlength="6" required>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
+        </div>
+        <div id="errorMessage" class="error-message hidden"></div>
+        <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+      </form>
+      <p class="auth-switch">
+        Already have an account? <a href="/login.html">Login here</a>
+      </p>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const errorDiv = document.getElementById('errorMessage');
+      
+      if (password !== confirmPassword) {
+        errorDiv.textContent = 'Passwords do not match';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('hidden');
+          return;
+        }
+        
+        localStorage.setItem('user', JSON.stringify(data.user));
+        showToast('Account created! Redirecting...');
+        setTimeout(() => window.location.href = '/', 1500);
+      } catch (error) {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

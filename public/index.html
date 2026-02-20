@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechMart - Your Tech Essentials Store</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">🛒 TechMart</a>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search products..." aria-label="Search products">
+        <button id="searchBtn" aria-label="Search">🔍</button>
+      </div>
+      <div class="nav-links">
+        <a href="/cart.html" class="cart-link">
+          🛒 Cart (<span id="cartCount">0</span>)
+        </a>
+        <div id="authArea">
+          <a href="/login.html" class="btn btn-outline">Login</a>
+          <a href="/register.html" class="btn btn-primary">Sign Up</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Welcome to TechMart</h1>
+      <p>Find the best tech accessories for your setup</p>
+    </section>
+
+    <section class="filters">
+      <div class="filter-group">
+        <label for="categoryFilter">Category:</label>
+        <select id="categoryFilter">
+          <option value="all">All Categories</option>
+          <option value="electronics">Electronics</option>
+          <option value="accessories">Accessories</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="priceRange">Max Price: $<span id="priceValue">200</span></label>
+        <input type="range" id="priceRange" min="0" max="200" value="200">
+      </div>
+      <div class="filter-group">
+        <label for="sortBy">Sort by:</label>
+        <select id="sortBy">
+          <option value="name">Name</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="products">
+      <h2>Our Products</h2>
+      <div id="productGrid" class="product-grid">
+        <!-- Products loaded dynamically -->
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2024 TechMart. Demo store for testing purposes.</p>
+  </footer>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
