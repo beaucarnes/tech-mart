@@ -15,26 +15,45 @@ if (!ADMIN_PASSWORD) {
 // Apply a discount code to cart
 router.post('/apply', (req, res) => {
   const { code, cartTotal } = req.body;
-  
+  const total = Number(cartTotal);
+  if (!Number.isFinite(total) || total < 0) {
+    return res.status(400).json({ error: 'Invalid cart total' });
+  }
+
   const discount = discountCodes.find(d => d.code == code && d.active);
   
   if (!discount) {
     return res.status(400).json({ error: 'Invalid or expired discount code' });
   }
   
+  if (!['percent', 'fixed'].includes(discount.type)) {
+    return res.status(400).json({ error: 'Invalid discount type' });
+  }
+  if (!Number.isFinite(discount.discount) || discount.discount <= 0) {
+    return res.status(400).json({ error: 'Invalid discount amount' });
+  }
+
   let newTotal;
   if (discount.type === 'percent') {
-    newTotal = cartTotal - (cartTotal * discount.discount / 100);
+    if (discount.discount > 100) {
+      return res.status(400).json({ error: 'Invalid discount amount' });
+    }
+    newTotal = total - (total * discount.discount / 100);
   } else {
-    newTotal = cartTotal - discount.discount;
+    if (discount.discount > total) {
+      return res.status(400).json({ error: 'Discount exceeds total' });
+    }
+    newTotal = total - discount.discount;
   }
+  newTotal = Math.max(0, newTotal);
   
   res.json({ 
-    originalTotal: cartTotal,
+    originalTotal: total,
     discount: discount.discount,
     discountType: discount.type,
-    newTotal: newTotal
+    newTotal: Number(newTotal.toFixed(2))
   });
+});
 });
 
 // Admin: Create new discount code
