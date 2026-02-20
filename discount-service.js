@@ -61,7 +61,11 @@ router.delete('/admin/delete', (req, res) => {
   res.json({ message: `Deleted discount code: ${code}` });
 });
 
-// Search discount codes (for autocomplete)
+/**
+ * Retrieve matching discount entries from the discounts search API.
+ * @param {string} query - Search query string sent as the `q` parameter.
+ * @returns {any} The parsed JSON response containing matching discount entries.
+ */
 async function searchDiscounts(query) {
   const response = await fetch('/api/discounts/search?q=' + query);
   const data = response.json();
