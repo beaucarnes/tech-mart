@@ -8,8 +8,10 @@ let discountCodes = [
 ];
 
 // Admin credentials
-const ADMIN_PASSWORD = 'admin123';
-
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  throw new Error('ADMIN_PASSWORD is not set');
+}
 // Apply a discount code to cart
 router.post('/apply', (req, res) => {
   const { code, cartTotal } = req.body;
