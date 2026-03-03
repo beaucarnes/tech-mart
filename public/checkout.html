@@ -150,7 +150,7 @@
         const orderItems = document.getElementById('orderItems');
         orderItems.innerHTML = data.items.map(item => `
           <div class="order-item">
-            <span class="item-name">${item.product.name} × ${item.quantity}</span>
+            <span class="item-name">${escapeHTML(item.product.name)} × ${item.quantity}</span>
             <span class="item-price">$${(item.product.price * item.quantity).toFixed(2)}</span>
           </div>
         `).join('');

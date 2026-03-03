@@ -1,5 +1,12 @@
 // TechMart - Demo E-commerce Store JavaScript
 
+// HTML sanitization helper to prevent XSS
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 // Global state
 let products = [];
 let currentFilters = {
@@ -15,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateCartCount();
   updateAuthArea();
   setupEventListeners();
+  updateWishlistCount();
 });
 
 // Load products from API
@@ -69,20 +77,26 @@ function renderProducts() {
   grid.innerHTML = products.map(product => `
     <div class="product-card" data-product-id="${product.id}">
       <div class="product-image">
-        <img src="images/${product.image}" alt="${product.name}" onerror="this.src='images/placeholder.svg'">
+        <img src="images/${escapeHTML(product.image)}" alt="${escapeHTML(product.name)}" onerror="this.src='images/placeholder.svg'">
       </div>
       <div class="product-info">
-        <h3>${product.name}</h3>
-        <p class="product-category">${product.category}</p>
+        <h3>${escapeHTML(product.name)}</h3>
+        <p class="product-category">${escapeHTML(product.category)}</p>
         <p class="product-price">$${product.price.toFixed(2)}</p>
         <p class="product-stock ${product.stock < 5 ? 'low' : ''}">
           ${product.stock < 5 ? `Only ${product.stock} left!` : `${product.stock} in stock`}
         </p>
-        <button class="btn btn-primary btn-full add-to-cart-btn" 
-                data-product-id="${product.id}"
-                ${product.stock === 0 ? 'disabled' : ''}>
-          ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-        </button>
+        <div class="product-actions">
+          <button class="btn btn-primary btn-full add-to-cart-btn"
+                  data-product-id="${product.id}"
+                  ${product.stock === 0 ? 'disabled' : ''}>
+            ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+          </button>
+          <button class="btn btn-outline btn-full wishlist-btn"
+                  data-product-id="${product.id}">
+            🤍 Add to Wishlist
+          </button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -92,6 +106,15 @@ function renderProducts() {
     btn.addEventListener('click', (e) => {
       const productId = parseInt(e.target.dataset.productId);
       addToCart(productId);
+    });
+  });
+
+  // Add click handlers for wishlist buttons
+  document.querySelectorAll('.wishlist-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const productId = parseInt(e.target.dataset.productId);
+      await addToWishlist(productId);
+      updateWishlistCount();
     });
   });
 }
@@ -120,6 +143,80 @@ async function addToCart(productId) {
   }
 }
 
+// Add to wishlist
+async function addToWishlist(productId) {
+  try {
+    const response = await fetch('/api/wishlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      showToast(data.error || 'Failed to add to wishlist', 'error');
+      return;
+    }
+    showToast('Added to wishlist!');
+  } catch (err) {
+    console.error('Error adding to wishlist:', err);
+    showToast('Network error', 'error');
+  }
+}
+
+// Remove from wishlist
+async function removeFromWishlist(productId) {
+  try {
+    const response = await fetch(`/api/wishlist/${productId}`, { method: 'DELETE' });
+    const data = await response.json();
+    if (!response.ok) {
+      showToast(data.error || 'Failed to remove', 'error');
+      return;
+    }
+    showToast('Removed from wishlist');
+    loadWishlist();
+    updateWishlistCount();
+  } catch (err) {
+    console.error('Error removing wishlist item:', err);
+  }
+}
+
+// Load wishlist page items
+async function loadWishlist() {
+  try {
+    const response = await fetch('/api/wishlist');
+    const data = await response.json();
+    const grid = document.getElementById('wishlistGrid');
+    if (!grid) return;
+    grid.innerHTML = data.items.map(p => `
+      <div class="product-card">
+        <div class="product-image">
+          <img src="images/${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}" onerror="this.src='images/placeholder.svg'">
+        </div>
+        <div class="product-info">
+          <h3>${escapeHTML(p.name)}</h3>
+          <p class="product-price">$${p.price.toFixed(2)}</p>
+          <button class="btn btn-primary" onclick="addToCart(${p.id})">Add to Cart</button>
+          <button class="btn btn-outline" onclick="removeFromWishlist(${p.id})">Remove</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Error loading wishlist:', err);
+  }
+}
+
+// Update wishlist count in navbar (simple count)
+async function updateWishlistCount() {
+  try {
+    const response = await fetch('/api/wishlist');
+    const data = await response.json();
+    const count = data.items.length || 0;
+    document.querySelectorAll('#wishlistCount').forEach(el => el.textContent = count);
+  } catch (err) {
+    console.error('Error updating wishlist count:', err);
+  }
+}
+
 // Update cart count in navbar
 async function updateCartCount() {
   try {
@@ -144,7 +241,7 @@ function updateAuthArea() {
   
   if (user) {
     authArea.innerHTML = `
-      <span class="user-name">Hi, ${user.name}</span>
+      <span class="user-name">Hi, ${escapeHTML(user.name)}</span>
       <button class="btn btn-outline" id="logoutBtn">Logout</button>
     `;
     document.getElementById('logoutBtn').addEventListener('click', logout);
@@ -234,6 +331,11 @@ function setupEventListeners() {
 }
 
 // Make functions globally available
+window.escapeHTML = escapeHTML;
 window.showToast = showToast;
 window.updateCartCount = updateCartCount;
 window.updateAuthArea = updateAuthArea;
+window.addToWishlist = addToWishlist;
+window.removeFromWishlist = removeFromWishlist;
+window.loadWishlist = loadWishlist;
+window.updateWishlistCount = updateWishlistCount;

@@ -75,10 +75,10 @@
         cartItems.innerHTML = data.items.map(item => `
           <div class="cart-item" data-product-id="${item.productId}">
             <div class="item-image">
-              <img src="images/${item.product.image}" alt="${item.product.name}">
+              <img src="images/${escapeHTML(item.product.image)}" alt="${escapeHTML(item.product.name)}">
             </div>
             <div class="item-details">
-              <h3>${item.product.name}</h3>
+              <h3>${escapeHTML(item.product.name)}</h3>
               <p class="item-price">$${item.product.price.toFixed(2)}</p>
             </div>
             <div class="item-quantity">

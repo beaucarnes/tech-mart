@@ -3,11 +3,28 @@ const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 10;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors({ credentials: true, origin: true }));
+const ALLOWED_ORIGINS = [
+  `http://localhost:${PORT}`,
+  `http://127.0.0.1:${PORT}`
+];
+app.use(cors({
+  credentials: true,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (same-origin, curl, server-to-server)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -33,7 +50,8 @@ function ensureSession(req, res, next) {
     sessionId = uuidv4();
     sessions[sessionId] = {
       cart: [],
-      currentUser: null
+      currentUser: null,
+      wishlist: []
     };
     res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'lax' });
   }
@@ -46,9 +64,13 @@ function ensureSession(req, res, next) {
 app.use(ensureSession);
 
 // Global users list (shared across sessions for login)
-let users = [
-  { id: 1, email: 'demo@techmart.com', password: 'demo123', name: 'Demo User' }
-];
+let users = [];
+
+// Initialize demo user with hashed password
+(async () => {
+  const hashedPassword = await bcrypt.hash('demo123', SALT_ROUNDS);
+  users.push({ id: 1, email: 'demo@techmart.com', password: hashedPassword, name: 'Demo User' });
+})();
 
 // API Routes
 
@@ -97,6 +119,35 @@ app.get('/api/cart', (req, res) => {
   res.json({ items: cartWithProducts, total: total.toFixed(2) });
 });
 
+// Wishlist endpoints
+// Get wishlist
+app.get('/api/wishlist', (req, res) => {
+  const wishlistIds = req.session.wishlist || [];
+  const wishlist = wishlistIds.map(id => products.find(p => p.id === id)).filter(Boolean);
+  res.json({ items: wishlist });
+});
+
+// Add to wishlist
+app.post('/api/wishlist', (req, res) => {
+  const { productId } = req.body;
+  const pid = parseInt(productId);
+  const product = products.find(p => p.id === pid);
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+
+  req.session.wishlist = req.session.wishlist || [];
+  if (!req.session.wishlist.includes(pid)) {
+    req.session.wishlist.push(pid);
+  }
+  res.json({ message: 'Added to wishlist', wishlist: req.session.wishlist });
+});
+
+// Remove from wishlist
+app.delete('/api/wishlist/:productId', (req, res) => {
+  const pid = parseInt(req.params.productId);
+  req.session.wishlist = (req.session.wishlist || []).filter(id => id !== pid);
+  res.json({ message: 'Removed from wishlist', wishlist: req.session.wishlist });
+});
+
 // Add to cart
 app.post('/api/cart', (req, res) => {
   const { productId, quantity = 1 } = req.body;
@@ -126,18 +177,25 @@ app.put('/api/cart/:productId', (req, res) => {
   const { quantity } = req.body;
   const productId = parseInt(req.params.productId);
   const cart = req.session.cart;
-  
+
   const item = cart.find(i => i.productId === productId);
   if (!item) {
     return res.status(404).json({ error: 'Item not in cart' });
   }
-  
+
   if (quantity <= 0) {
     req.session.cart = cart.filter(i => i.productId !== productId);
   } else {
+    const product = products.find(p => p.id === productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    if (quantity > product.stock) {
+      return res.status(400).json({ error: `Only ${product.stock} available in stock` });
+    }
     item.quantity = quantity;
   }
-  
+
   res.json({ message: 'Cart updated', cart: req.session.cart });
 });
 
@@ -155,18 +213,23 @@ app.delete('/api/cart', (req, res) => {
 });
 
 // Login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  
+
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
   }
-  
-  const user = users.find(u => u.email === email && u.password === password);
+
+  const user = users.find(u => u.email === email);
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
-  
+
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
   req.session.currentUser = user;
   res.json({ message: 'Login successful', user: { id: user.id, email: user.email, name: user.name } });
 });
@@ -178,21 +241,22 @@ app.post('/api/logout', (req, res) => {
 });
 
 // Register
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   const { email, password, name } = req.body;
-  
+
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'All fields required' });
   }
-  
+
   if (users.find(u => u.email === email)) {
     return res.status(400).json({ error: 'Email already registered' });
   }
-  
-  const newUser = { id: users.length + 1, email, password, name };
+
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  const newUser = { id: users.length + 1, email, password: hashedPassword, name };
   users.push(newUser);
   req.session.currentUser = newUser;
-  
+
   res.status(201).json({ message: 'Registration successful', user: { id: newUser.id, email, name } });
 });
 
@@ -246,6 +310,12 @@ app.post('/api/checkout', (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+// Catch-all error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, () => {
