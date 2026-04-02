@@ -1,0 +1,12 @@
+--- a/server.js
++++ b/server.js
+@@ -71,6 +71,10 @@ app.post('/api/cart', (req, res) => {
+   const session = sessions[req.cookies.sessionId];
+   const { productId, quantity } = req.body;
+   
++  if (!productId || quantity === undefined || quantity < 0) {
++    return res.status(400).json({ error: 'Invalid product ID or quantity' });
++  }
++
+   const product = products.find(p => p.id === productId);
+   if (!product) return res.status(404).json({ error: 'Product not found' });
