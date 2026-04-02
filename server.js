@@ -282,3 +282,40 @@ app.get('/api/products/search', (req, res) => {
   
   res.json({ results, total: results.length });
 });
+
+// Order history
+const orderHistory = [];
+
+app.post('/api/orders', (req, res) => {
+  const session = sessions[req.cookies.sessionId];
+  if (!session || session.cart.length === 0) {
+    return res.status(400).json({ error: 'Cart is empty' });
+  }
+  
+  const order = {
+    id: uuidv4(),
+    items: [...session.cart],
+    total: session.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+    status: 'confirmed',
+    createdAt: new Date().toISOString(),
+    customer: session.currentUser || 'guest'
+  };
+  
+  orderHistory.push(order);
+  session.cart = [];
+  res.status(201).json(order);
+});
+
+app.get('/api/orders', (req, res) => {
+  const session = sessions[req.cookies.sessionId];
+  const userOrders = orderHistory.filter(o => 
+    o.customer === (session?.currentUser || 'guest')
+  );
+  res.json({ orders: userOrders, total: userOrders.length });
+});
+
+app.get('/api/orders/:id', (req, res) => {
+  const order = orderHistory.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  res.json(order);
+});
