@@ -54,7 +54,6 @@ router.post('/apply', (req, res) => {
     newTotal: Number(newTotal.toFixed(2))
   });
 });
-});
 
 // Admin: Create new discount code
 router.post('/admin/create', (req, res) => {
