@@ -6,7 +6,9 @@ let currentFilters = {
   category: 'all',
   maxPrice: 200,
   search: '',
-  sort: 'name'
+  sort: 'name',
+  page: 1,
+  limit: 20
 };
 
 // Initialize the app
@@ -29,8 +31,12 @@ async function loadProducts() {
     }
     params.append('maxPrice', currentFilters.maxPrice);
     
+    params.append('page', currentFilters.page);
+    params.append('limit', currentFilters.limit);
+
     const response = await fetch(`/api/products?${params}`);
-    products = await response.json();
+    const data = await response.json();
+    products = data.products || [];
     
     // Sort products
     sortProducts();
@@ -189,6 +195,7 @@ function setupEventListeners() {
   if (categoryFilter) {
     categoryFilter.addEventListener('change', (e) => {
       currentFilters.category = e.target.value;
+      currentFilters.page = 1;
       loadProducts();
     });
   }
@@ -222,11 +229,13 @@ function setupEventListeners() {
   if (searchInput && searchBtn) {
     searchBtn.addEventListener('click', () => {
       currentFilters.search = searchInput.value;
+      currentFilters.page = 1;
       loadProducts();
     });
     searchInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         currentFilters.search = searchInput.value;
+        currentFilters.page = 1;
         loadProducts();
       }
     });

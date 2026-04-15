@@ -8,6 +8,31 @@ const discountRouter = require('./discount-service');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+function parsePositiveInt(value, fallback) {
+  const parsed = parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function paginateItems(items, pageParam, limitParam) {
+  const page = parsePositiveInt(pageParam, 1);
+  const limit = parsePositiveInt(limitParam, items.length || 1);
+  const totalItems = items.length;
+  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
+  const startIndex = (page - 1) * limit;
+  const paginatedItems = items.slice(startIndex, startIndex + limit);
+
+  return {
+    items: paginatedItems,
+    pagination: {
+      totalItems,
+      totalPages,
+      currentPage: page,
+      hasNext: totalPages > 0 && page < totalPages,
+      limit
+    }
+  };
+}
+
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -57,7 +82,7 @@ let users = [
 
 // Get all products
 app.get('/api/products', (req, res) => {
-  const { category, search, minPrice, maxPrice } = req.query;
+  const { category, search, minPrice, maxPrice, page, limit } = req.query;
   let filtered = [...products];
   
   if (category && category !== 'all') {
@@ -75,16 +100,15 @@ app.get('/api/products', (req, res) => {
     filtered = filtered.filter(p => p.price <= parseFloat(maxPrice));
   }
   
-  res.json(filtered);
-});
-
-// Get single product
-app.get('/api/products/:id', (req, res) => {
-  const product = products.find(p => p.id === parseInt(req.params.id));
-  if (!product) {
-    return res.status(404).json({ error: 'Product not found' });
-  }
-  res.json(product);
+  const { items, pagination } = paginateItems(filtered, page, limit);
+  res.json({
+    products: items,
+    totalItems: pagination.totalItems,
+    totalPages: pagination.totalPages,
+    currentPage: pagination.currentPage,
+    hasNext: pagination.hasNext,
+    limit: pagination.limit
+  });
 });
 
 // Get cart
@@ -257,7 +281,7 @@ app.listen(PORT, () => {
 
 // Product search with filtering
 app.get('/api/products/search', (req, res) => {
-  const { q, category, minPrice, maxPrice, inStock } = req.query;
+  const { q, category, minPrice, maxPrice, inStock, page, limit } = req.query;
   let results = [...products];
   
   if (q) {
@@ -280,7 +304,25 @@ app.get('/api/products/search', (req, res) => {
     results = results.filter(p => p.stock > 0);
   }
   
-  res.json({ results, total: results.length });
+  const { items, pagination } = paginateItems(results, page, limit);
+
+  res.json({
+    results: items,
+    total: pagination.totalItems,
+    totalPages: pagination.totalPages,
+    currentPage: pagination.currentPage,
+    hasNext: pagination.hasNext,
+    limit: pagination.limit
+  });
+});
+
+// Get single product
+app.get('/api/products/:id', (req, res) => {
+  const product = products.find(p => p.id === parseInt(req.params.id));
+  if (!product) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+  res.json(product);
 });
 
 // Order history
