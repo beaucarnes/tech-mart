@@ -254,3 +254,68 @@ app.get('/api/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`TechMart server running on http://localhost:${PORT}`);
 });
+
+// Product search with filtering
+app.get('/api/products/search', (req, res) => {
+  const { q, category, minPrice, maxPrice, inStock } = req.query;
+  let results = [...products];
+  
+  if (q) {
+    const query = q.toLowerCase();
+    results = results.filter(p => 
+      p.name.toLowerCase().includes(query) || 
+      p.category.toLowerCase().includes(query)
+    );
+  }
+  if (category) {
+    results = results.filter(p => p.category === category);
+  }
+  if (minPrice) {
+    results = results.filter(p => p.price >= parseFloat(minPrice));
+  }
+  if (maxPrice) {
+    results = results.filter(p => p.price <= parseFloat(maxPrice));
+  }
+  if (inStock === 'true') {
+    results = results.filter(p => p.stock > 0);
+  }
+  
+  res.json({ results, total: results.length });
+});
+
+// Order history
+const orderHistory = [];
+
+app.post('/api/orders', (req, res) => {
+  const session = sessions[req.cookies.sessionId];
+  if (!session || session.cart.length === 0) {
+    return res.status(400).json({ error: 'Cart is empty' });
+  }
+  
+  const order = {
+    id: uuidv4(),
+    items: [...session.cart],
+    total: session.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+    status: 'confirmed',
+    createdAt: new Date().toISOString(),
+    customer: session.currentUser || 'guest'
+  };
+  
+  orderHistory.push(order);
+  session.cart = [];
+  res.status(201).json(order);
+});
+
+app.get('/api/orders', (req, res) => {
+  const session = sessions[req.cookies.sessionId];
+  const userOrders = orderHistory.filter(o => 
+    o.customer === (session?.currentUser || 'guest')
+  );
+  res.json({ orders: userOrders, total: userOrders.length });
+});
+
+app.get('/api/orders/:id', (req, res) => {
+  const order = orderHistory.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  res.json(order);
+});
