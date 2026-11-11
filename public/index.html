@@ -59,7 +59,79 @@
     <section class="products">
       <h2>Our Products</h2>
       <div id="productGrid" class="product-grid">
-        <!-- Products loaded dynamically -->
+        <!-- Initial products (refreshed dynamically from /api/products when server is running) -->
+        <div class="product-card" data-product-id="2">
+          <div class="product-image">
+            <img src="images/keyboard.svg" alt="Mechanical Keyboard" onerror="this.src='images/placeholder.svg'">
+          </div>
+          <div class="product-info">
+            <h3>Mechanical Keyboard</h3>
+            <p class="product-category">electronics</p>
+            <p class="product-price">$129.99</p>
+            <p class="product-stock">8 in stock</p>
+            <button class="btn btn-primary btn-full add-to-cart-btn" data-product-id="2">Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card" data-product-id="4">
+          <div class="product-image">
+            <img src="images/stand.svg" alt="Monitor Stand" onerror="this.src='images/placeholder.svg'">
+          </div>
+          <div class="product-info">
+            <h3>Monitor Stand</h3>
+            <p class="product-category">accessories</p>
+            <p class="product-price">$89.99</p>
+            <p class="product-stock">12 in stock</p>
+            <button class="btn btn-primary btn-full add-to-cart-btn" data-product-id="4">Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card" data-product-id="6">
+          <div class="product-image">
+            <img src="images/mousepad.svg" alt="Mouse Pad XL" onerror="this.src='images/placeholder.svg'">
+          </div>
+          <div class="product-info">
+            <h3>Mouse Pad XL</h3>
+            <p class="product-category">accessories</p>
+            <p class="product-price">$24.99</p>
+            <p class="product-stock">50 in stock</p>
+            <button class="btn btn-primary btn-full add-to-cart-btn" data-product-id="6">Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card" data-product-id="3">
+          <div class="product-image">
+            <img src="images/hub.svg" alt="USB-C Hub" onerror="this.src='images/placeholder.svg'">
+          </div>
+          <div class="product-info">
+            <h3>USB-C Hub</h3>
+            <p class="product-category">electronics</p>
+            <p class="product-price">$49.99</p>
+            <p class="product-stock">25 in stock</p>
+            <button class="btn btn-primary btn-full add-to-cart-btn" data-product-id="3">Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card" data-product-id="5">
+          <div class="product-image">
+            <img src="images/webcam.svg" alt="Webcam HD" onerror="this.src='images/placeholder.svg'">
+          </div>
+          <div class="product-info">
+            <h3>Webcam HD</h3>
+            <p class="product-category">electronics</p>
+            <p class="product-price">$69.99</p>
+            <p class="product-stock">20 in stock</p>
+            <button class="btn btn-primary btn-full add-to-cart-btn" data-product-id="5">Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card" data-product-id="1">
+          <div class="product-image">
+            <img src="images/headphones.svg" alt="Wireless Headphones" onerror="this.src='images/placeholder.svg'">
+          </div>
+          <div class="product-info">
+            <h3>Wireless Headphones</h3>
+            <p class="product-category">electronics</p>
+            <p class="product-price">$79.99</p>
+            <p class="product-stock">15 in stock</p>
+            <button class="btn btn-primary btn-full add-to-cart-btn" data-product-id="1">Add to Cart</button>
+          </div>
+        </div>
       </div>
     </section>
   </main>

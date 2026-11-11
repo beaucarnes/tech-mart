@@ -2,6 +2,7 @@
 
 // Global state
 let products = [];
+let fallbackProducts = [];
 let currentFilters = {
   category: 'all',
   maxPrice: 200,
@@ -11,11 +12,48 @@ let currentFilters = {
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
+  fallbackProducts = readInitialProducts();
   loadProducts();
   updateCartCount();
   updateAuthArea();
   setupEventListeners();
 });
+
+// Read pre-rendered product cards from the DOM as an offline/static fallback
+function readInitialProducts() {
+  const cards = document.querySelectorAll('#productGrid .product-card');
+  return Array.from(cards).map(card => {
+    const id = parseInt(card.dataset.productId, 10);
+    const name = card.querySelector('h3')?.textContent.trim() || '';
+    const category = card.querySelector('.product-category')?.textContent.trim().toLowerCase() || '';
+    const priceText = card.querySelector('.product-price')?.textContent || '0';
+    const price = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+    const imgSrc = card.querySelector('img')?.getAttribute('src') || 'images/placeholder.svg';
+    const image = imgSrc.replace(/^images\//, '');
+    const stockText = card.querySelector('.product-stock')?.textContent || '';
+    const stockMatch = stockText.match(/\d+/);
+    const stock = stockMatch ? parseInt(stockMatch[0], 10) : 0;
+
+    return { id, name, category, price, image, stock };
+  });
+}
+
+// Filter fallback products client-side when the API is unavailable
+function filterFallbackProducts() {
+  const search = currentFilters.search.trim().toLowerCase();
+  return fallbackProducts.filter(product => {
+    if (currentFilters.category !== 'all' && product.category !== currentFilters.category) {
+      return false;
+    }
+    if (search && !product.name.toLowerCase().includes(search)) {
+      return false;
+    }
+    if (product.price > currentFilters.maxPrice) {
+      return false;
+    }
+    return true;
+  });
+}
 
 // Load products from API
 async function loadProducts() {
@@ -30,6 +68,9 @@ async function loadProducts() {
     params.append('maxPrice', currentFilters.maxPrice);
     
     const response = await fetch(`/api/products?${params}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
     products = await response.json();
     
     // Sort products
@@ -38,6 +79,11 @@ async function loadProducts() {
     renderProducts();
   } catch (error) {
     console.error('Error loading products:', error);
+    if (fallbackProducts.length > 0) {
+      products = filterFallbackProducts();
+      sortProducts();
+      renderProducts();
+    }
   }
 }
 
